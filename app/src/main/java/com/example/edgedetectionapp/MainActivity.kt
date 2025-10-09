@@ -4,17 +4,23 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.util.Size
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import com.example.edgedetectionapp.databinding.ActivityMainBinding
 import com.google.common.util.concurrent.ListenableFuture
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var imageAnalyzerExecutor: ExecutorService
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
 
@@ -23,6 +29,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        imageAnalyzerExecutor = Executors.newSingleThreadExecutor()
 
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -49,15 +56,27 @@ class MainActivity : AppCompatActivity() {
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
-            bindPreview(cameraProvider)
+            bindCameraUseCases(cameraProvider)
         }, ContextCompat.getMainExecutor(this))
+
     }
 
 
-    private fun bindPreview(cameraProvider: ProcessCameraProvider) {
+    private fun bindCameraUseCases(cameraProvider: ProcessCameraProvider) {
         val preview = Preview.Builder().build()
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+        val imageAnalysis = ImageAnalysis.Builder()
+            //.setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+            .setTargetResolution(Size(1280, 720))
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+        imageAnalysis.setAnalyzer(imageAnalyzerExecutor, ImageAnalysis.Analyzer { imageProxy ->
+            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+            //here
+            imageProxy.close()
+        })
 
+        cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
 
         preview.setSurfaceProvider(binding.cameraPreview.surfaceProvider)
 
@@ -82,7 +101,7 @@ class MainActivity : AppCompatActivity() {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                finish() 
+                finish()
             }
         }
     }
