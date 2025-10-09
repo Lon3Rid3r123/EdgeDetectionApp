@@ -35,5 +35,6 @@ find_package(OpenCV REQUIRED)
 target_link_libraries(${CMAKE_PROJECT_NAME}
         # List libraries link to the target library
         ${OpenCV_LIBS}
+        GLESv2
         android
         log)

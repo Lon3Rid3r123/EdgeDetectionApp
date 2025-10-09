@@ -17,4 +17,11 @@ object NativeLib {
         pixelStrideUV: Int,
         rowStrideUV: Int
     ) : Long // Returns pointer to the processed Mat
+    external fun onSurfaceCreated()
+
+
+    external fun onSurfaceChanged(width: Int, height: Int)
+
+
+    external fun drawFrame(matPointer: Long)
 }

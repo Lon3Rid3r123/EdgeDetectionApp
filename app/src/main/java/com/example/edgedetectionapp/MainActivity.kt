@@ -2,6 +2,7 @@ package com.example.edgedetectionapp
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
 import android.util.Size
@@ -21,6 +22,7 @@ import java.util.concurrent.Executors
 class MainActivity : AppCompatActivity() {
 
     private lateinit var imageAnalyzerExecutor: ExecutorService
+    private lateinit var glRenderer: MyGLRenderer
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
 
@@ -35,7 +37,12 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        glRenderer = MyGLRenderer()
 
+        // 2. Configure and set the renderer for the GLSurfaceView
+        binding.glSurfaceView.setEGLContextClientVersion(2) // Use OpenGL ES 2.0
+        binding.glSurfaceView.setRenderer(glRenderer)
+        binding.glSurfaceView.renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
         if (allPermissionsGranted()) {
             startCamera()
         } else {
@@ -63,7 +70,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun bindCameraUseCases(cameraProvider: ProcessCameraProvider) {
-        val preview = Preview.Builder().build()
+
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
         val imageAnalysis = ImageAnalysis.Builder()
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
@@ -87,6 +94,10 @@ class MainActivity : AppCompatActivity() {
             )
             Log.d("MainActivity", "Processed Mat Pointer: $matPointer")
             //Code for integration with openGL will be handled here for display
+            glRenderer.updateFrame(matPointer)
+
+            // 2. Request a redraw on   the GL thread
+            binding.glSurfaceView.requestRender()
             imageProxy.close()
         })
 
@@ -97,9 +108,9 @@ class MainActivity : AppCompatActivity() {
         try {
             cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
-                this, cameraSelector, preview, imageAnalysis
+                this, cameraSelector,  imageAnalysis
             )
-            preview.setSurfaceProvider(binding.cameraPreview.surfaceProvider)
+
         } catch (exc: Exception) {
             Log.e("CameraX", "Binding failed", exc)
         }
