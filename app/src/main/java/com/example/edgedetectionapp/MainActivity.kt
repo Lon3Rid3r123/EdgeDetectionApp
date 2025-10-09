@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity() {
         val preview = Preview.Builder().build()
         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
         val imageAnalysis = ImageAnalysis.Builder()
-            //.setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .setTargetResolution(Size(1280, 720))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    external fun stringFromJNI(): String
+
 
     companion object {
         init {
