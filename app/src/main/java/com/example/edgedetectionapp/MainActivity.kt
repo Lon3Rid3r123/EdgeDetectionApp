@@ -71,20 +71,35 @@ class MainActivity : AppCompatActivity() {
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
         imageAnalysis.setAnalyzer(imageAnalyzerExecutor, ImageAnalysis.Analyzer { imageProxy ->
-            val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-            //here
+            val yPlane = imageProxy.planes[0]
+            val uPlane = imageProxy.planes[1]
+            val vPlane = imageProxy.planes[2]
+            val matPointer = NativeLib.processFrame(
+                yBuffer = yPlane.buffer,
+                uBuffer = uPlane.buffer,
+                vBuffer = vPlane.buffer,
+                width = imageProxy.width,
+                height = imageProxy.height,
+                pixelStrideY = yPlane.pixelStride,
+                rowStrideY = yPlane.rowStride,
+                pixelStrideUV = uPlane.pixelStride,
+                rowStrideUV = uPlane.rowStride
+            )
+            Log.d("MainActivity", "Processed Mat Pointer: $matPointer")
+            //Code for integration with openGL will be handled here for display
             imageProxy.close()
         })
 
-        cameraProvider.bindToLifecycle(this as LifecycleOwner, cameraSelector, imageAnalysis, preview)
 
-        preview.setSurfaceProvider(binding.cameraPreview.surfaceProvider)
+
+
 
         try {
             cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
-                this, cameraSelector, preview
+                this, cameraSelector, preview, imageAnalysis
             )
+            preview.setSurfaceProvider(binding.cameraPreview.surfaceProvider)
         } catch (exc: Exception) {
             Log.e("CameraX", "Binding failed", exc)
         }
